@@ -16,7 +16,7 @@ low_digit := vars+3
         LDY #0
         LDA (data_ptr),Y
         BEQ bank_done
-        JSR process_line
+        JSR process_line_part1
         JMP compute_loop
 
     bank_done:
@@ -31,7 +31,33 @@ low_digit := vars+3
 .endproc
 
 
-.proc process_line
+.proc solve_day1_part2
+    reset_data_ptr:
+        LDA #<input_data
+        STA data_ptr+0
+        LDA #>input_data
+        STA data_ptr+1
+
+    compute_loop:
+        LDY #0
+        LDA (data_ptr),Y
+        BEQ bank_done
+        JSR process_line_part2
+        JMP compute_loop
+
+    bank_done:
+        INY
+        LDA (data_ptr),Y
+        BMI data_done
+        JSR set_bank
+        JMP reset_data_ptr
+
+    data_done:
+        RTS
+.endproc
+
+
+.proc process_line_part1
     find_first_digit:
         LDA (data_ptr),Y
         INY
@@ -92,3 +118,8 @@ low_digit := vars+3
 .endproc
 
 
+
+
+.proc process_line_part2
+    RTS
+.endproc

@@ -7,7 +7,7 @@
 .globalzp vars, joy1_pressed
 
 .import poll_input
-.import solve_day1_part1
+.import solve_day1_part1, solve_day1_part2
 
 .segment "CHARS0"
 .incbin "chr0.chr"
@@ -18,7 +18,7 @@
 ps_buffer := $100
 
 .zeropage
-    vars: .res 16
+    vars: .res 128
     local_ppumask: .res 1
     local_ppuctrl: .res 1
     frame_done: .res 1
@@ -30,7 +30,9 @@ ps_buffer := $100
 .bss
     .align $100
     local_oam: .res $100
-    solution: .res 16
+
+    SOLUTION_BUFFER_LEN = 16
+    solution: .res SOLUTION_BUFFER_LEN
 
 
 .segment "CODE7"
@@ -115,7 +117,7 @@ ps_buffer := $100
 
         LSR A
         STA computation_queued
-
+        JSR clear_solution_buffer
     load_routine:
         LDX selected_problem
         LDA solution_routine_los,X
@@ -133,21 +135,21 @@ ps_buffer := $100
 
     call_solution:
         LDA #0
-        STA ppuctrl
+        STA ppuctrl ; Disable NMIs
         JMP (jump_addr)
 
     solution_ret:
-        LDA local_ppuctrl
+        LDA local_ppuctrl ; Re-enable NMIs
         STA ppuctrl
         JMP print_solution
 .endproc
 
 NUM_SOLUTIONS = 1
 .define SOLUTION_ROUTINES \
-    solve_day1_part1
+    solve_day1_part1, solve_day1_part2
 solution_routine_los: .lobytes SOLUTION_ROUTINES
 solution_routine_his: .hibytes SOLUTION_ROUTINES
-solution_banks: .byte $00
+solution_banks: .byte $00, $00
 
 
 .proc handle_input
@@ -267,6 +269,17 @@ solution_banks: .byte $00
     STA $E000
     LSR A
     STA $E000
+    RTS
+.endproc
+
+
+.proc clear_solution_buffer
+    LDA #0
+    LDX #SOLUTION_BUFFER_LEN
+    loop:
+        STA solution-1,X
+        DEX
+        BNE loop
     RTS
 .endproc
 
