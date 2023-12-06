@@ -1,0 +1,2 @@
+input/*.txt text eol=lf
+gfx/*.chr binary
