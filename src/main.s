@@ -3,7 +3,8 @@
 .include "ppu_inc.s"
 .include "input_inc.s"
 
-.global nmi_handler, reset_handler, irq_handler, solution, set_bank
+.global nmi_handler, reset_handler, irq_handler
+.global solution, set_bank, print_dbyte_to_solution
 .globalzp vars, joy1_pressed
 
 .import poll_input
@@ -284,6 +285,60 @@ solution_banks: .byte $00, $00
 .endproc
 
 
+;;; Converts 16 bit number to decimal array in the solution buffer.
+;;;
+;;; Arguments:
+;;;     A: Lo byte of dbyte
+;;;     X: Hi byte of dbyte
+.proc print_dbyte_to_solution
+    dbyte := vars+0
+
+        STA dbyte+0
+        STX dbyte+1
+
+    find_thousands:
+        LDA dbyte+0
+        SEC
+        SBC #(1000 .mod 256)
+        TAX
+        LDA dbyte+1
+        SBC #(1000 / 256)
+        BCC find_hundreds
+        STX dbyte+0
+        STA dbyte+1
+        INC solution+3 ; thousands digit
+        BNE find_thousands
+
+    find_hundreds:
+        LDA dbyte+0
+        SEC
+        SBC #100
+        TAX
+        LDA dbyte+1
+        SBC #0
+        BCC find_tens
+        STX dbyte+0
+        STA dbyte+1
+        INC solution+2 ; hundreds digit
+        BNE find_hundreds
+
+    find_tens:
+        LDA dbyte+0
+        SEC
+        SBC #10
+        BCC find_ones
+        STA dbyte+0
+        INC solution+1 ; tens digit
+        BNE find_tens
+
+    find_ones:
+        LDA dbyte+0
+        STA solution+0 ; ones_digit
+
+        RTS
+.endproc
+
+
 .proc setup_palettes
     LDA #$3F
     STA ppuaddr
@@ -315,15 +370,21 @@ solution_banks: .byte $00, $00
 
 
 .proc print_solution
+    digit_count := vars+0
+
     LDX ps_end
 
     LDY #17
     find_high_digit:
         DEY
         LDA solution-1,Y
-        BEQ find_high_digit
+        BNE high_digit_found
+        CPY #1
+        BNE find_high_digit
 
-    TYA
+    high_digit_found:
+    STY digit_count
+    LDA #16
     STA ps_buffer+0,X
     LDA #$22
     STA ps_buffer+1,X
@@ -336,10 +397,22 @@ solution_banks: .byte $00, $00
         STA ps_buffer+3,X
         INX
         DEY
-        BPL print_digits
+        BNE print_digits
+
+    LDA #16
+    SEC
+    SBC digit_count
+    TAY
+    LDA #$FF
+    print_spaces:
+        STA ps_buffer+3,X
+        INX
+        DEY
+        BNE print_spaces
+
     LDA #0
     STA ps_buffer+3,X
-    TAX
+    TXA
     CLC
     ADC #3
     STA ps_end
