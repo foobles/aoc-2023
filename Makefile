@@ -2,7 +2,7 @@
 
 # update sources manually here
 # everything else should be automatic
-SOURCES = day1.s header.s stubs.s input.s  main.s
+SOURCES = day1.s day2.s header.s stubs.s input.s  main.s
 
 AS = ca65
 LD = ld65

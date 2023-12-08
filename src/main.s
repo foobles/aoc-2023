@@ -9,6 +9,7 @@
 
 .import poll_input
 .import solve_day1_part1, solve_day1_part2
+.import solve_day2_part1
 
 .segment "CHARS0"
 .incbin "chr0.chr"
@@ -145,12 +146,13 @@ ps_buffer := $100
         JMP print_solution
 .endproc
 
-NUM_SOLUTIONS = 1
+NUM_SOLUTIONS = 2
 .define SOLUTION_ROUTINES \
-    solve_day1_part1, solve_day1_part2
+    solve_day1_part1, solve_day1_part2, \
+    solve_day2_part1
 solution_routine_los: .lobytes SOLUTION_ROUTINES
 solution_routine_his: .hibytes SOLUTION_ROUTINES
-solution_banks: .byte $00, $00
+solution_banks: .byte $00, $00, $02
 
 
 .proc handle_input
