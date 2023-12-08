@@ -298,6 +298,19 @@ solution_banks: .byte $00, $00, $02
         STA dbyte+0
         STX dbyte+1
 
+    find_ten_thousands:
+        LDA dbyte+0
+        SEC
+        SBC #(10000 .mod 256)
+        TAX
+        LDA dbyte+1
+        SBC #(10000 / 256)
+        BCC find_thousands
+        STX dbyte+0
+        STA dbyte+1
+        INC solution+4 ; ten thousands digit
+        BNE find_ten_thousands
+
     find_thousands:
         LDA dbyte+0
         SEC
