@@ -3,9 +3,11 @@
 .include "ppu_inc.s"
 .include "input_inc.s"
 
+mul_u8_u8_u16 := tepples_mul_u8_u8_u16 ; Can switch to foobles_mul_u8_u8_u16
+
 .global nmi_handler, reset_handler, irq_handler
-.global solution, set_bank, print_dbyte_to_solution
-.globalzp vars, joy1_pressed
+.global solution, set_bank, print_dbyte_to_solution, mul_u8_u8_u16
+.globalzp vars, joy1_pressed, mul_out
 
 .import poll_input
 .import solve_day1_part1, solve_day1_part2
@@ -28,6 +30,9 @@ ps_buffer := $100
     ps_end: .res 1
 
     selected_problem: .res 1
+
+    mul_in: .res 2
+    mul_out: .res 2
 
 .bss
     .align $100
@@ -350,6 +355,80 @@ solution_banks: .byte $00, $00, $02
         LDA dbyte+0
         STA solution+0 ; ones_digit
 
+        RTS
+.endproc
+
+
+;;; Unsigned 8x8->16 bit multiplication
+;;; Implementation without reference by Foobles.
+;;;
+;;; Arguments:
+;;;     A: First operand
+;;;     X: Second operand
+;;;
+;;; Output:
+;;;     mul_out: 16 bit product
+.proc foobles_mul_u8_u8_u16
+        STX mul_in+0
+        CMP mul_in+0
+        BCC clear_vars
+    swap_inputs:
+        TAX
+        LDA mul_in+0
+        STX mul_in+0
+
+    clear_vars:
+        LDX #0
+        STX mul_in+1
+        STX mul_out+0
+        STX mul_out+1
+    loop:
+        LSR A
+        BCC shift_up
+    add_out:
+        TAX
+        LDA mul_in+0
+        CLC
+        ADC mul_out+0
+        STA mul_out+0
+        LDA mul_in+1
+        ADC mul_out+1
+        STA mul_out+1
+        TXA
+    shift_up:
+        BEQ done
+        ASL mul_in+0
+        ROL mul_in+1
+        BCC loop ; BRA
+
+    done:
+        RTS
+.endproc
+
+
+;;; Unsigned 8x8->16 bit multiplication
+;;; Implementation originally by Tepples, modified by Foobles.
+;;;
+;;; Arguments:
+;;;     A: First operand
+;;;     X: Second operand
+;;;
+;;; Output:
+;;;     mul_out: 16 bit product
+.proc tepples_mul_u8_u8_u16
+        LSR A
+        STA mul_out+0
+        DEX
+        STX mul_in
+        LDA #0
+    .repeat 8
+        BCC :+
+            ADC mul_in
+        :
+        ROR A
+        ROR mul_out+0
+    .endrepeat
+        STA mul_out+1
         RTS
 .endproc
 
