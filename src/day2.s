@@ -277,6 +277,7 @@ NUM_BLUE = 14
         STA temp_mul_out+0
 
         LDA mul_out+1
+        BEQ :+
         LDX max_blue
         JSR mul_u8_u8_u16
         LDA mul_out+0
@@ -284,6 +285,7 @@ NUM_BLUE = 14
         ADC game_sum+1
         STA game_sum+1
 
+        :
         LDA temp_mul_out+0
         LDX max_blue
         JSR mul_u8_u8_u16
