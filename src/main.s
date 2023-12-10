@@ -6,12 +6,12 @@
 mul_u8_u8_u16 := tepples_mul_u8_u8_u16 ; Can switch to foobles_mul_u8_u8_u16
 
 .global nmi_handler, reset_handler, irq_handler
-.global solution, set_bank, print_dbyte_to_solution, mul_u8_u8_u16
+.global solution, set_bank, print_dbyte_to_solution, print_tbyte_to_solution, mul_u8_u8_u16
 .globalzp vars, joy1_pressed, mul_out
 
 .import poll_input
 .import solve_day1_part1, solve_day1_part2
-.import solve_day2_part1
+.import solve_day2_part1, solve_day2_part2
 
 .segment "CHARS0"
 .incbin "chr0.chr"
@@ -154,10 +154,10 @@ ps_buffer := $100
 NUM_SOLUTIONS = 2
 .define SOLUTION_ROUTINES \
     solve_day1_part1, solve_day1_part2, \
-    solve_day2_part1
+    solve_day2_part1, solve_day2_part2
 solution_routine_los: .lobytes SOLUTION_ROUTINES
 solution_routine_his: .hibytes SOLUTION_ROUTINES
-solution_banks: .byte $00, $00, $02
+solution_banks: .byte $00, $00, $02, $02
 
 
 .proc handle_input
@@ -292,6 +292,87 @@ solution_banks: .byte $00, $00, $02
 .endproc
 
 
+;;; Converts 24 bit number to decimal array in the solution buffer.
+;;;
+;;; Arguments:
+;;;     A: Lo byte of tbyte
+;;;     X: Mid byte of tbyte
+;;;     Y: Hi byte of tbyte
+.proc print_tbyte_to_solution
+    tbyte := vars+0
+        STA tbyte+0
+        STX tbyte+1
+        STY tbyte+2
+
+    find_ten_millions:
+        LDA tbyte+0
+        SEC
+        SBC #(10000000 .mod 256)
+        TAX
+        LDA tbyte+1
+        SBC #((10000000 >> 8) .mod 256)
+        TAY
+        LDA tbyte+2
+        SBC #(10000000 >> 16)
+        BCC find_millions
+        STX tbyte+0
+        STY tbyte+1
+        STA tbyte+2
+        INC solution+7 ; ten millions digit
+        BNE find_ten_millions
+
+    find_millions:
+        LDA tbyte+0
+        SEC
+        SBC #(1000000 .mod 256)
+        TAX
+        LDA tbyte+1
+        SBC #((1000000 >> 8) .mod 256)
+        TAY
+        LDA tbyte+2
+        SBC #(1000000 >> 16)
+        BCC find_hundred_thousands
+        STX tbyte+0
+        STY tbyte+1
+        STA tbyte+2
+        INC solution+6 ; millions digit
+        BNE find_millions
+
+    find_hundred_thousands:
+        LDA tbyte+0
+        SEC
+        SBC #(100000 .mod 256)
+        TAX
+        LDA tbyte+1
+        SBC #((100000 >> 8) .mod 256)
+        TAY
+        LDA tbyte+2
+        SBC #(100000 >> 16)
+        BCC find_ten_thousands
+        STX tbyte+0
+        STY tbyte+1
+        STA tbyte+2
+        INC solution+5 ; hundred thousands digit
+        BNE find_hundred_thousands
+
+    find_ten_thousands:
+        LDA tbyte+0
+        SEC
+        SBC #(10000 .mod 256)
+        TAX
+        LDA tbyte+1
+        SBC #((10000 >> 8) .mod 256)
+        TAY
+        LDA tbyte+2
+        SBC #(10000 >> 16)
+        BCC ::find_thousands
+        STX tbyte+0
+        STY tbyte+1
+        STA tbyte+2
+        INC solution+4 ; ten thousands digit
+        BNE find_ten_thousands
+.endproc
+
 ;;; Converts 16 bit number to decimal array in the solution buffer.
 ;;;
 ;;; Arguments:
@@ -358,6 +439,7 @@ solution_banks: .byte $00, $00, $02
         RTS
 .endproc
 
+find_thousands = print_dbyte_to_solution::find_thousands
 
 ;;; Unsigned 8x8->16 bit multiplication
 ;;; Implementation without reference by Foobles.
